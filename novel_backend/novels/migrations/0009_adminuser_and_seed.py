@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.RunSQL(
-            sql="INSERT INTO admin_user (username, password, real_name, is_active, created_at) VALUES ('Admin', '%s', '系统管理员', 1, NOW())" % django.contrib.auth.hashers.make_password('Admin@2026'),
+            sql="INSERT INTO admin_user (username, password, real_name, is_active, created_at) VALUES ('Admin', '%s', '系统管理员', 1, datetime('now'))" % django.contrib.auth.hashers.make_password('Admin@2026'),
             reverse_sql="DELETE FROM admin_user WHERE username = 'Admin'",
         ),
     ]

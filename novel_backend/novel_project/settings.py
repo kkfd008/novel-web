@@ -79,38 +79,13 @@ WSGI_APPLICATION = 'novel_project.wsgi.application'
 
 
 # Database
-# 本地开发用 MySQL，Render/生产环境用 Supabase (PostgreSQL)
-_db_engine = env('DB_ENGINE', 'django.db.backends.mysql')
-
-if _db_engine.startswith('postgres'):
-    # PostgreSQL (Supabase / Render)
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': env('DB_NAME', 'postgres'),
-            'USER': env('DB_USER', 'postgres'),
-            'PASSWORD': env('DB_PASSWORD', ''),
-            'HOST': env('DB_HOST', 'localhost'),
-            'PORT': env('DB_PORT', '5432'),
-        }
+# 使用 SQLite3
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
-else:
-    # MySQL (本地开发)
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': env('DB_NAME', 'novel_fiction'),
-            'USER': env('DB_USER', 'root'),
-            'PASSWORD': env('DB_PASSWORD', ''),
-            'HOST': env('DB_HOST', 'localhost'),
-            'PORT': env('DB_PORT', '3306'),
-            'OPTIONS': {
-                'charset': env('DB_CHARSET', 'utf8mb4'),
-                "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
-                'autocommit': True,
-            },
-        }
-    }
+}
 
 AUTH_USER_MODEL = 'novels.User'
 
