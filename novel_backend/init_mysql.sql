@@ -1,8 +1,7 @@
 -- ============================================================
---  墨香书阁 (InkFiction) — MySQL 建表脚本
---  数据库: novel_fiction | 字符集: utf8mb4 | 引擎: InnoDB
---  生成时间: 2026-05-30
---  用法: mysql -u root -p novel_fiction < init_mysql.sql
+--  墨香书阁 (InkFiction) — MySQL 建表脚本（已废弃）
+--  项目已切换为 SQLite3，建表由 Django migrations 自动管理。
+--  此文件仅保留作为历史参考。
 -- ============================================================
 
 SET NAMES utf8mb4;

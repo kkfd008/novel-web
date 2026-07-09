@@ -1,3 +1,6 @@
+# 此脚本原用于从 SQLite 迁移数据到 MySQL。
+# 项目已全面切换为 SQLite3，此脚本不再需要。
+# 如需备份/恢复数据，请直接复制 db.sqlite3 文件。
 import sqlite3, pymysql, sys
 
 sqlite_path = r"d:\python damo\vue\novel_backend\db.sqlite3"

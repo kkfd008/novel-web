@@ -1,9 +1,8 @@
-import pymysql
+import sqlite3
+import os
 
-conn = pymysql.connect(
-    host='localhost', user='root', password='123456',
-    database='novel_db', charset='utf8mb4'
-)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+conn = sqlite3.connect(os.path.join(BASE_DIR, 'db.sqlite3'))
 cur = conn.cursor()
 
 cur.execute("""
@@ -20,7 +19,7 @@ print(f"需要修复字数的小说: {len(rows)} 本\n")
 fixed = 0
 for nid, title, total in rows:
     if total > 0:
-        cur.execute("UPDATE novel SET word_count=%s WHERE id=%s", (total, nid))
+        cur.execute("UPDATE novel SET word_count=? WHERE id=?", (total, nid))
         print(f"  [{nid}] {title}: 0 -> {total}字")
         fixed += 1
     else:

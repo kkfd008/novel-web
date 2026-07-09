@@ -3,10 +3,10 @@ from datetime import datetime
 from lxml import etree
 
 try:
-    import pymysql
-    HAS_PYMYSQL = True
+    import sqlite3
+    HAS_SQLITE3 = True
 except ImportError:
-    HAS_PYMYSQL = False
+    HAS_SQLITE3 = False
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,14 +17,7 @@ log = logging.getLogger('InkCrawler')
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-DB_CONFIG = {
-    'host': 'localhost',
-    'port': 3306,
-    'user': 'root',
-    'password': '200486qq.',
-    'database': 'novel_fiction',
-    'charset': 'utf8mb4',
-}
+DB_PATH = os.path.join(BASE_DIR, 'db.sqlite3')
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -51,8 +44,8 @@ class XbiqugeCrawler:
 
     BASE = 'https://www.xbiquge.la'
 
-    def __init__(self, db_config=None):
-        self.db_config = db_config or DB_CONFIG
+    def __init__(self, db_path=None):
+        self.db_path = db_path or DB_PATH
         self.conn = None
         self.stats = {'novels': 0, 'chapters': 0, 'errors': 0}
         self.session = requests.Session()
@@ -65,12 +58,13 @@ class XbiqugeCrawler:
             os.makedirs(COVER_DIR)
 
     def connect_db(self):
-        if not HAS_PYMYSQL:
-            log.warning('pymysql not installed, using dry-run mode')
+        if not HAS_SQLITE3:
+            log.warning('sqlite3 not available, using dry-run mode')
             return False
         try:
-            self.conn = pymysql.connect(**self.db_config)
-            log.info(f"MySQL OK: {self.db_config['database']}")
+            self.conn = sqlite3.connect(self.db_path)
+            self.conn.row_factory = sqlite3.Row
+            log.info(f"SQLite OK: {self.db_path}")
             return True
         except Exception as e:
             log.error(f"DB error: {e}")
@@ -263,7 +257,7 @@ class XbiqugeCrawler:
         if not self.conn:
             return None
         cur = self.conn.cursor()
-        cur.execute("SELECT id FROM novel WHERE title=%s LIMIT 1", (book['title'],))
+        cur.execute("SELECT id FROM novel WHERE title=? LIMIT 1", (book['title'],))
         row = cur.fetchone()
         if row:
             log.info(f"  EXISTS: {book['title']} (id={row[0]})")
@@ -272,7 +266,7 @@ class XbiqugeCrawler:
         cur.execute("""INSERT INTO novel (title,author,cover,description,category,tags,
                     status,audit_status,word_count,view_count,recommend,
                     created_at,updated_at)
-                  VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW(),NOW())""",
+                  VALUES (?,?,?,?,?,?,?,?,?,?,?,datetime('now'),datetime('now'))""",
                    (book['title'], book['author'], book['cover'],
                     book['description'], book['category'], book['tags'],
                     book['status'], 2, book['word_count'], 0, 0))
@@ -286,13 +280,13 @@ class XbiqugeCrawler:
         if not self.conn or len(content) < 30:
             return
         cur = self.conn.cursor()
-        cur.execute("""SELECT id FROM chapter WHERE novel_id=%s AND title=%s LIMIT 1""",
+        cur.execute("""SELECT id FROM chapter WHERE novel_id=? AND title=? LIMIT 1""",
                    (nid, ch['title']))
         if cur.fetchone():
             return
         cur.execute("""INSERT INTO chapter (novel_id,title,content,chapter_order,
                     word_count,publish_status,created_at,updated_at)
-                  VALUES (%s,%s,%s,%s,%s,1,NOW(),NOW())""",
+                  VALUES (?,?,?,?,?,1,datetime('now'),datetime('now'))""",
                    (nid, ch['title'], content, ch['order'], ch.get('word_count', 0)))
         self.conn.commit()
         self.stats['chapters'] += 1
