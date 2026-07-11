@@ -106,8 +106,7 @@ if ((-not $BackendOnly) -and (-not $NoInstall)) {
         }
         Pop-Location
         ok "前端依赖安装完成"
-    }
-    else {
+    } else {
         ok "前端依赖已存在，跳过安装"
     }
 }
