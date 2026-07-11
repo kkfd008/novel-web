@@ -1,7 +1,7 @@
 # =============================================================================
 # 墨香书阁 (InkFiction) — Windows 11 全自动启动脚本
 # 用法: .\start.ps1
-# 首次运行请先执行: Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+# 首次运行: Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 # =============================================================================
 param(
     [switch]$NoInstall,
@@ -11,25 +11,21 @@ param(
 )
 
 if ($Help) {
-    Write-Host @"
-
-墨香书阁 全自动启动脚本
-
-用法: .\start.ps1 [选项]
-
-选项:
-    -NoInstall      跳过依赖安装（二次启动更快）
-    -BackendOnly    只启动 Django 后端 (http://127.0.0.1:8000)
-    -FrontendOnly   只启动 Vue 前端 (http://127.0.0.1:5173)
-    -Help           显示此帮助
-
-首次运行: 脚本会自动创建虚拟环境、安装依赖、迁移数据库
-后续运行: .\start.ps1 -NoInstall  跳过安装，直接启动
-
-环境要求:
-    Python 3.10+   https://www.python.org/downloads/
-    Node.js 18+    https://nodejs.org/
-"@
+    Write-Host ""
+    Write-Host "墨香书阁 全自动启动脚本" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "用法: .\start.ps1 [选项]"
+    Write-Host ""
+    Write-Host "选项:"
+    Write-Host "  -NoInstall      跳过依赖安装（二次启动更快）"
+    Write-Host "  -BackendOnly    只启动 Django 后端 (http://127.0.0.1:8000)"
+    Write-Host "  -FrontendOnly   只启动 Vue 前端 (http://127.0.0.1:5173)"
+    Write-Host "  -Help           显示此帮助"
+    Write-Host ""
+    Write-Host "环境要求:"
+    Write-Host "  Python 3.10+    https://www.python.org/downloads/"
+    Write-Host "  Node.js 18+     https://nodejs.org/"
+    Write-Host ""
     exit 0
 }
 
@@ -49,7 +45,6 @@ $PYTHON   = "python"
 # =============================================================================
 function info($s) { Write-Host "[*] $s" -ForegroundColor Cyan }
 function ok($s)   { Write-Host "[+] $s" -ForegroundColor Green }
-function warn($s) { Write-Host "[!] $s" -ForegroundColor Yellow }
 function fail($s) { Write-Host "[x] $s" -ForegroundColor Red; exit 1 }
 
 # =============================================================================
@@ -57,11 +52,19 @@ function fail($s) { Write-Host "[x] $s" -ForegroundColor Red; exit 1 }
 # =============================================================================
 info "检查运行环境..."
 
-try { $v = & python --version 2>&1; ok "Python $v" }
-catch { fail "未检测到 Python，请安装 Python 3.10+ 并添加到 PATH" }
+try {
+    $v = & python --version 2>&1
+    ok "Python $v"
+} catch {
+    fail "未检测到 Python，请安装 Python 3.10+ 并添加到 PATH"
+}
 
-try { $v = & node --version 2>&1; ok "Node.js $v" }
-catch { fail "未检测到 Node.js，请安装 Node.js 18+ 并添加到 PATH" }
+try {
+    $v = & node --version 2>&1
+    ok "Node.js $v"
+} catch {
+    fail "未检测到 Node.js，请安装 Node.js 18+ 并添加到 PATH"
+}
 
 # =============================================================================
 # 2. 虚拟环境
@@ -69,7 +72,7 @@ catch { fail "未检测到 Node.js，请安装 Node.js 18+ 并添加到 PATH" }
 if (-not $FrontendOnly) {
     if (-not (Test-Path $VENV)) {
         info "创建虚拟环境 (.venv)..."
-        & python -m venv $VENV
+        $result = & python -m venv $VENV 2>&1
         if ($LASTEXITCODE -ne 0) { fail "虚拟环境创建失败" }
         ok "虚拟环境创建完成"
     }
@@ -80,10 +83,10 @@ if (-not $FrontendOnly) {
 # =============================================================================
 # 3. 后端依赖
 # =============================================================================
-if (-not $FrontendOnly -and -not $NoInstall) {
+if ((-not $FrontendOnly) -and (-not $NoInstall)) {
     info "安装后端依赖 (pip)..."
-    & $PYTHON -m pip install --upgrade pip -q 2>$null
-    & $PYTHON -m pip install -r (Join-Path $BACKEND "requirements.txt") -q
+    $null = & $PYTHON -m pip install --upgrade pip -q 2>&1
+    $result = & $PYTHON -m pip install -r (Join-Path $BACKEND "requirements.txt") -q 2>&1
     if ($LASTEXITCODE -ne 0) { fail "pip install 失败，请检查网络连接" }
     ok "后端依赖安装完成"
 }
@@ -91,15 +94,20 @@ if (-not $FrontendOnly -and -not $NoInstall) {
 # =============================================================================
 # 4. 前端依赖
 # =============================================================================
-if (-not $BackendOnly -and -not $NoInstall) {
-    if (-not (Test-Path (Join-Path $FRONTEND "node_modules"))) {
+if ((-not $BackendOnly) -and (-not $NoInstall)) {
+    $nodeModules = Join-Path $FRONTEND "node_modules"
+    if (-not (Test-Path $nodeModules)) {
         info "安装前端依赖 (npm)..."
         Push-Location $FRONTEND
-        & npm install --silent 2>$null
-        if ($LASTEXITCODE -ne 0) { Pop-Location; fail "npm install 失败，请检查网络连接" }
+        $result = & npm install 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Pop-Location
+            fail "npm install 失败，请检查网络连接"
+        }
         Pop-Location
         ok "前端依赖安装完成"
-    } else {
+    }
+    else {
         ok "前端依赖已存在，跳过安装"
     }
 }
@@ -110,7 +118,7 @@ if (-not $BackendOnly -and -not $NoInstall) {
 if (-not $FrontendOnly) {
     info "数据库迁移..."
     Push-Location $BACKEND
-    & $PYTHON manage.py migrate --run-syncdb 2>&1 | Out-Null
+    $null = & $PYTHON manage.py migrate --run-syncdb 2>&1
     Pop-Location
     ok "数据库已就绪 (SQLite3)"
 }
@@ -128,16 +136,16 @@ Write-Host "========================================" -ForegroundColor Magenta
 Write-Host ""
 
 if (-not $FrontendOnly) {
-    $backendCmd = "`$host.UI.RawUI.WindowTitle = 'InkFiction - 后端 :8000'; cd '$BACKEND'; & '$PYTHON' manage.py runserver 0.0.0.0:8000; pause"
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", $backendCmd
-    Start-Sleep 2
+    $cmd = "`$host.UI.RawUI.WindowTitle = 'InkFiction - 后端 :8000'; cd '$BACKEND'; & '$PYTHON' manage.py runserver 0.0.0.0:8000; pause"
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", $cmd
+    Start-Sleep -Seconds 2
     ok "Django 后端已启动（新窗口）"
 }
 
 if (-not $BackendOnly) {
-    $frontendCmd = "`$host.UI.RawUI.WindowTitle = 'InkFiction - 前端 :5173'; cd '$FRONTEND'; npm run dev; pause"
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", $frontendCmd
-    Start-Sleep 3
+    $cmd = "`$host.UI.RawUI.WindowTitle = 'InkFiction - 前端 :5173'; cd '$FRONTEND'; npm run dev; pause"
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", $cmd
+    Start-Sleep -Seconds 3
     ok "Vue 前端已启动（新窗口）"
 }
 
