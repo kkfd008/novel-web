@@ -1,0 +1,8 @@
+# Windows 本地开发环境依赖
+# 只包含运行必需的包，排除 Unix-only 包（gunicorn）
+Django==4.2.14
+djangorestframework==3.15.2
+django-cors-headers==4.4.0
+python-dotenv==1.0.1
+Pillow==10.4.0
+whitenoise==6.7.0

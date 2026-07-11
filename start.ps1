@@ -77,7 +77,7 @@ if (-not $FrontendOnly) {
 if (-not $FrontendOnly -and -not $NoInstall) {
     info "安装后端依赖 (pip)..."
     & $PYTHON -m pip install --upgrade pip -q 2>&1 | Out-Null
-    & $PYTHON -m pip install -r "$BACKEND\requirements.txt" -q 2>&1 | Out-Null
+    & $PYTHON -m pip install -r "$BACKEND\requirements-windows.txt" -q 2>&1 | Out-Null
     if ($LASTEXITCODE -ne 0) { fail "pip install 失败" }
     ok "后端依赖安装完成"
 }
