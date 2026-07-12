@@ -76,8 +76,8 @@ if (-not $FrontendOnly) {
 # =============================================================================
 if (-not $FrontendOnly -and -not $NoInstall) {
     info "安装后端依赖 (pip)..."
-    & $PYTHON -m pip install --upgrade pip -q 2>&1 | Out-Null
-    & $PYTHON -m pip install -r "$BACKEND\requirements-windows.txt" -q 2>&1 | Out-Null
+    $null = & $PYTHON -m pip install --upgrade pip -q 2>&1
+    $null = & $PYTHON -m pip install -r "$BACKEND\requirements-windows.txt" -q 2>&1
     if ($LASTEXITCODE -ne 0) { fail "pip install 失败" }
     ok "后端依赖安装完成"
 }
@@ -93,7 +93,7 @@ if (-not $BackendOnly -and -not $NoInstall) {
     if (-not (Test-Path $nodeModules)) {
         info "安装前端依赖 (npm)..."
         Push-Location $FRONTEND
-        & npm install 2>&1 | Out-Null
+        $null = & npm install 2>&1
         if ($LASTEXITCODE -ne 0) {
             Pop-Location
             fail "npm install 失败"
@@ -109,7 +109,11 @@ if (-not $BackendOnly -and -not $NoInstall) {
 if (-not $FrontendOnly) {
     info "数据库迁移..."
     Push-Location $BACKEND
-    & $PYTHON manage.py migrate --run-syncdb 2>&1 | Out-Null
+    $null = & $PYTHON manage.py migrate --run-syncdb 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Pop-Location
+        fail "数据库迁移失败"
+    }
     Pop-Location
     ok "数据库已就绪 (SQLite3)"
 }
